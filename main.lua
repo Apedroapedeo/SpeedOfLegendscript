@@ -1,135 +1,142 @@
--- Speed Legends Script (por ChatGPT) 🌀
--- GitHub: https://github.com/Apedroapedeo/SpeedOfLegendscript
+--[[
+Script para Speed Legends Roblox
+Desenvolvido com ajuda do ChatGPT
+github.com/Apedroapedeo/SpeedOfLegendscript
+]]
 
 -- Serviços
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
 
--- GUI
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local Frame = Instance.new("Frame", ScreenGui)
-Frame.Position = UDim2.new(0.3, 0, 0.3, 0)
-Frame.Size = UDim2.new(0, 300, 0, 320)
-Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Frame.BorderSizePixel = 0
-Frame.Active = true
-Frame.Draggable = true
+-- UI Principal
+local ScreenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+ScreenGui.Name = "SpeedScriptUI"
+ScreenGui.ResetOnSpawn = false
 
-local UIListLayout = Instance.new("UIListLayout", Frame)
-UIListLayout.Padding = UDim.new(0, 4)
+-- Botão Minimizar
+local reopenBtn = Instance.new("TextButton", ScreenGui)
+reopenBtn.Size = UDim2.new(0, 100, 0, 30)
+reopenBtn.Position = UDim2.new(0, 10, 0, 10)
+reopenBtn.Text = "Abrir Menu"
+reopenBtn.Visible = false
+reopenBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+reopenBtn.TextColor3 = Color3.new(1, 1, 1)
 
-function createToggle(text, callback)
-	local button = Instance.new("TextButton", Frame)
-	button.Size = UDim2.new(1, -10, 0, 30)
-	button.Position = UDim2.new(0, 5, 0, 0)
-	button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-	button.TextColor3 = Color3.new(1, 1, 1)
-	button.Font = Enum.Font.SourceSansBold
-	button.TextSize = 18
-	button.Text = text
-	local state = false
-	button.MouseButton1Click:Connect(function()
-		state = not state
-		button.Text = text .. ": " .. (state and "ON" or "OFF")
-		callback(state)
-	end)
+-- Menu Principal
+local frame = Instance.new("Frame", ScreenGui)
+frame.Size = UDim2.new(0, 300, 0, 350)
+frame.Position = UDim2.new(0.5, -150, 0.5, -175)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Active = true
+frame.Draggable = true
+
+local uiList = Instance.new("UIListLayout", frame)
+uiList.Padding = UDim.new(0, 6)
+uiList.FillDirection = Enum.FillDirection.Vertical
+uiList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+uiList.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Função de botão
+local function createButton(name, callback)
+	local btn = Instance.new("TextButton", frame)
+	btn.Size = UDim2.new(0, 280, 0, 30)
+	btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Text = name
+	btn.MouseButton1Click:Connect(callback)
 end
 
--- Anti-AFK
-LocalPlayer.Idled:Connect(function()
-    game.VirtualInputManager:SendKeyEvent(true, "W", false, game)
+-- Minimizar
+createButton("Minimizar", function()
+	frame.Visible = false
+	reopenBtn.Visible = true
 end)
 
--- Auto Farm Orbs
-local orbsFarm = false
-createToggle("Auto Orbs", function(state)
-	orbsFarm = state
+reopenBtn.MouseButton1Click:Connect(function()
+	frame.Visible = true
+	reopenBtn.Visible = false
 end)
 
--- Auto Farm Rings
-local ringsFarm = false
-createToggle("Auto Rings", function(state)
-	ringsFarm = state
-end)
-
--- Infinite Jump
-local infJump = false
-createToggle("Infinite Jump", function(state)
-	infJump = state
-end)
-
--- Jump Power
-local jumpPowerActive = false
-createToggle("Jump Power (150)", function(state)
-	jumpPowerActive = state
-	if state then
-		Character:FindFirstChildOfClass("Humanoid").JumpPower = 150
-	else
-		Character:FindFirstChildOfClass("Humanoid").JumpPower = 50
+-- Auto Farm
+local farming = false
+createButton("Ativar Auto Farm", function()
+	farming = not farming
+	if farming then
+		createButton("Auto Farm Ativado", function() end).TextColor3 = Color3.fromRGB(0, 255, 0)
+		task.spawn(function()
+			while farming do
+				task.wait(0.2)
+				char = player.Character or player.CharacterAdded:Wait()
+				hrp = char:WaitForChild("HumanoidRootPart")
+				-- Orbs
+				for _, orb in pairs(workspace:WaitForChild("Orbs"):GetChildren()) do
+					if orb:IsA("Model") and orb:FindFirstChild("TouchInterest") then
+						firetouchinterest(hrp, orb, 0)
+						firetouchinterest(hrp, orb, 1)
+					end
+				end
+				-- Argolas
+				for _, ring in pairs(workspace:WaitForChild("Hoops"):GetChildren()) do
+					if ring:IsA("Part") and ring:FindFirstChild("TouchInterest") then
+						firetouchinterest(hrp, ring, 0)
+						firetouchinterest(hrp, ring, 1)
+					end
+				end
+			end
+		end)
 	end
 end)
 
--- Lock Posição
-local lockPosition = false
-createToggle("Lock Posição", function(state)
-	lockPosition = state
+-- Auto Race
+local raceEnabled = false
+createButton("Auto Race", function()
+	raceEnabled = not raceEnabled
+	task.spawn(function()
+		while raceEnabled do
+			task.wait(2)
+			local racePad = workspace:FindFirstChild("RacePads")
+			if racePad then
+				for _, pad in pairs(racePad:GetChildren()) do
+					if pad:IsA("Part") then
+						firetouchinterest(hrp, pad, 0)
+						firetouchinterest(hrp, pad, 1)
+					end
+				end
+			end
+		end
+	end)
+end)
+
+-- Infinite Jump
+local infJumpEnabled = false
+createButton("Ativar Infinite Jump", function()
+	infJumpEnabled = not infJumpEnabled
+end)
+
+UIS.JumpRequest:Connect(function()
+	if infJumpEnabled then
+		char:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+	end
+end)
+
+-- Jump Power
+createButton("Setar Jump Power 150", function()
+	char:FindFirstChildOfClass("Humanoid").JumpPower = 150
 end)
 
 -- NoClip
 local noclip = false
-createToggle("NoClip", function(state)
-	noclip = state
+createButton("Ativar NoClip", function()
+	noclip = not noclip
 end)
 
--- Minimizar
-local minimizeButton = Instance.new("TextButton", Frame)
-minimizeButton.Size = UDim2.new(1, -10, 0, 30)
-minimizeButton.Text = "Minimizar"
-minimizeButton.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
-minimizeButton.TextColor3 = Color3.new(1, 1, 1)
-minimizeButton.Font = Enum.Font.SourceSansBold
-minimizeButton.TextSize = 18
-minimizeButton.MouseButton1Click:Connect(function()
-	Frame.Visible = false
-end)
-
--- Botão cinza fixo para reabrir GUI
-local reopenButton = Instance.new("TextButton", ScreenGui)
-reopenButton.Size = UDim2.new(0, 80, 0, 30)
-reopenButton.Position = UDim2.new(0, 10, 0.5, 0)
-reopenButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-reopenButton.Text = "Abrir"
-reopenButton.TextColor3 = Color3.new(1, 1, 1)
-reopenButton.TextSize = 16
-reopenButton.MouseButton1Click:Connect(function()
-	Frame.Visible = true
-end)
-
--- Loop Principal
-RunService.RenderStepped:Connect(function()
-	if orbsFarm then
-		for _, orb in pairs(workspace:GetDescendants()) do
-			if orb.Name == "Orb" and orb:IsA("Part") then
-				orb.CFrame = HumanoidRootPart.CFrame
-			end
-		end
-	end
-	if ringsFarm then
-		for _, ring in pairs(workspace:GetDescendants()) do
-			if ring.Name == "Ring" and ring:IsA("Part") then
-				ring.CFrame = HumanoidRootPart.CFrame
-			end
-		end
-	end
-	if lockPosition then
-		Character:MoveTo(HumanoidRootPart.Position)
-	end
+RunService.Stepped:Connect(function()
 	if noclip then
-		for _, v in pairs(Character:GetDescendants()) do
+		for _, v in pairs(char:GetDescendants()) do
 			if v:IsA("BasePart") and v.CanCollide then
 				v.CanCollide = false
 			end
@@ -137,9 +144,27 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
--- Infinite Jump Loop
-UIS.JumpRequest:Connect(function()
-	if infJump then
-		Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+-- Lock Posição
+local lock = false
+local savedPos = nil
+createButton("Travar Posição", function()
+	lock = not lock
+	if lock then
+		savedPos = hrp.Position
 	end
+end)
+
+RunService.Heartbeat:Connect(function()
+	if lock and savedPos then
+		hrp.Velocity = Vector3.new(0, 0, 0)
+		hrp.CFrame = CFrame.new(savedPos)
+	end
+end)
+
+-- Anti-AFK
+player.Idled:Connect(function()
+	VirtualUser = game:GetService("VirtualUser")
+	VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+	wait(1)
+	VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
 end)
