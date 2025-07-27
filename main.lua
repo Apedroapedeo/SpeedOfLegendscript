@@ -1,211 +1,215 @@
 
---// Variables
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
+local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
-local RootPart = Character:WaitForChild("HumanoidRootPart")
+local Root = Character:WaitForChild("HumanoidRootPart")
 
---// UI Setup
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "SpeedOfLegendHub"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = game.CoreGui
+-- Flags
+local flags = {
+  autoOrbs = false,
+  autoHoops = false,
+  autoRace = false,
+  infiniteJump = false,
+  noClip = false
+}
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 300, 0, 350)
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -175)
-MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
+-- GUI
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "SpeedLegendHub"
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Title.BorderSizePixel = 0
-Title.Text = "Speed Of Legend Script"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 20
-Title.Parent = MainFrame
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 300, 0, 360)
+main.Position = UDim2.new(0.3,0,0.3,0)
+main.BackgroundColor3 = Color3.fromRGB(30,30,30)
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true
 
--- Minimize button
-local MinimizeBtn = Instance.new("TextButton")
-MinimizeBtn.Size = UDim2.new(0, 30, 0, 30)
-MinimizeBtn.Position = UDim2.new(1, -35, 0, 5)
-MinimizeBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-MinimizeBtn.Text = "-"
-MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinimizeBtn.Font = Enum.Font.SourceSansBold
-MinimizeBtn.TextSize = 24
-MinimizeBtn.Parent = Title
+local top = Instance.new("Frame", main)
+top.Size = UDim2.new(1,0,0,30)
+top.Position = UDim2.new(0,0,0,0)
+top.BackgroundColor3 = Color3.fromRGB(20,20,20)
 
-local function toggleGui()
-    if MainFrame.Visible then
-        MainFrame.Visible = false
-        MinimizeBtn.Text = "+"
-    else
-        MainFrame.Visible = true
-        MinimizeBtn.Text = "-"
-    end
-end
-MinimizeBtn.MouseButton1Click:Connect(toggleGui)
+local title = Instance.new("TextLabel", top)
+title.Size = UDim2.new(0.8,0,1,0)
+title.BackgroundTransparency = 1
+title.Text = "SpeedLegend Hub"
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Position = UDim2.new(0,10,0,0)
 
---// Toggles setup
-local function createToggle(text, parent, position)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -20, 0, 40)
-    frame.Position = position
-    frame.BackgroundTransparency = 1
-    frame.Parent = parent
+local minimize = Instance.new("TextButton", top)
+minimize.Size = UDim2.new(0,30,1,0)
+minimize.Position = UDim2.new(1,-35,0,0)
+minimize.Text = "-"
+minimize.TextColor3 = Color3.new(1,1,1)
+minimize.BackgroundColor3 = Color3.fromRGB(150,0,0)
+minimize.Font = Enum.Font.SourceSansBold
+minimize.TextSize = 20
 
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.7, 0, 1, 0)
-    label.Position = UDim2.new(0, 10, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.Font = Enum.Font.SourceSans
-    label.TextSize = 18
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
+local reopen = Instance.new("TextButton", gui)
+reopen.Size = UDim2.new(0,30,0,30)
+reopen.Position = UDim2.new(0.3,0,0.3,0)
+reopen.BackgroundColor3 = Color3.fromRGB(80,80,80)
+reopen.Text = "+"
+reopen.TextColor3 = Color3.new(1,1,1)
+reopen.Visible = false
 
-    local toggle = Instance.new("TextButton")
-    toggle.Size = UDim2.new(0, 80, 0, 30)
-    toggle.Position = UDim2.new(0.75, 0, 0.15, 0)
-    toggle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    toggle.Text = "Off"
-    toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    toggle.Font = Enum.Font.SourceSansBold
-    toggle.TextSize = 18
-    toggle.Parent = frame
-
-    local enabled = false
-    toggle.MouseButton1Click:Connect(function()
-        enabled = not enabled
-        if enabled then
-            toggle.Text = "On"
-            toggle.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-        else
-            toggle.Text = "Off"
-            toggle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        end
-    end)
-
-    return {
-        Enabled = function() return enabled end,
-        Set = function(value)
-            enabled = value
-            if value then
-                toggle.Text = "On"
-                toggle.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-            else
-                toggle.Text = "Off"
-                toggle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            end
-        end
-    }
-end
-
-local autoFarmToggle = createToggle("Auto Farm", MainFrame, UDim2.new(0, 10, 0, 60))
-local autoRaceToggle = createToggle("Auto Race", MainFrame, UDim2.new(0, 10, 0, 110))
-local infiniteJumpToggle = createToggle("Infinite Jump", MainFrame, UDim2.new(0, 10, 0, 160))
-
--- Jump velocity slider
-local sliderLabel = Instance.new("TextLabel")
-sliderLabel.Size = UDim2.new(1, -20, 0, 30)
-sliderLabel.Position = UDim2.new(0, 10, 0, 210)
-sliderLabel.BackgroundTransparency = 1
-sliderLabel.Text = "Jump Power: 50"
-sliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-sliderLabel.Font = Enum.Font.SourceSans
-sliderLabel.TextSize = 18
-sliderLabel.TextXAlignment = Enum.TextXAlignment.Left
-sliderLabel.Parent = MainFrame
-
-local slider = Instance.new("TextBox")
-slider.Size = UDim2.new(0, 100, 0, 30)
-slider.Position = UDim2.new(0, 10, 0, 240)
-slider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-slider.TextColor3 = Color3.fromRGB(255, 255, 255)
-slider.Font = Enum.Font.SourceSans
-slider.TextSize = 18
-slider.Text = "50"
-slider.ClearTextOnFocus = false
-slider.Parent = MainFrame
-
-local jumpPower = 50
-slider.FocusLost:Connect(function(enterPressed)
-    local val = tonumber(slider.Text)
-    if val and val >= 10 and val <= 200 then
-        jumpPower = val
-        sliderLabel.Text = "Jump Power: "..val
-    else
-        slider.Text = tostring(jumpPower)
-    end
+minimize.MouseButton1Click:Connect(function()
+  main.Visible = false
+  reopen.Visible = true
 end)
 
---// Auto Farm Logic
-local function autoFarm()
-    while autoFarmToggle.Enabled() do
-        -- Buscar objetos tipo "Orbe" ou "Circle" (substitua o nome pelo correto do jogo)
-        for _, orb in pairs(workspace:GetChildren()) do
-            if orb.Name == "Orbe" or orb.Name == "Circle" then
-                if orb:IsA("BasePart") then
-                    -- Teleporta o player para o orbe
-                    RootPart.CFrame = orb.CFrame + Vector3.new(0, 3, 0)
-                    wait(0.3)
-                end
-            end
-        end
-        wait(0.5)
-    end
-end
-
---// Auto Race Logic
-local function autoRace()
-    while autoRaceToggle.Enabled() do
-        -- Supondo que existe um objeto "RaceStart" que inicia a corrida
-        local raceStart = workspace:FindFirstChild("RaceStart")
-        if raceStart then
-            RootPart.CFrame = raceStart.CFrame + Vector3.new(0, 5, 0)
-            wait(0.2)
-            -- Aqui você pode adicionar um comando para iniciar a corrida,
-            -- por exemplo: firing um evento remoto ou interagindo com o objeto
-        end
-        wait(5)
-    end
-end
-
---// Infinite Jump Logic
-local canJump = false
-UserInputService.JumpRequest:Connect(function()
-    if infiniteJumpToggle.Enabled() then
-        Humanoid.JumpPower = jumpPower
-        Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-    else
-        Humanoid.JumpPower = 50 -- Valor padrão (pode ajustar)
-    end
+reopen.MouseButton1Click:Connect(function()
+  main.Visible = true
+  reopen.Visible = false
 end)
 
+-- Create toggle
+local function createToggle(name, y, flagKey)
+  local label = Instance.new("TextLabel", main)
+  label.Size = UDim2.new(0.6,0,0,30)
+  label.Position = UDim2.new(0,10,0,y)
+  label.Text = name
+  label.TextColor3 = Color3.new(1,1,1)
+  label.BackgroundTransparency = 1
+  label.Font = Enum.Font.SourceSans
+  label.TextSize = 16
 
+  local btn = Instance.new("TextButton", main)
+  btn.Size = UDim2.new(0,60,0,30)
+  btn.Position = UDim2.new(1,-70,0,y)
+  btn.Text = "OFF"
+  btn.TextColor3 = Color3.new(1,1,1)
+  btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+  btn.Font = Enum.Font.SourceSansBold
+  btn.TextSize = 16
+  btn.MouseButton1Click:Connect(function()
+    flags[flagKey] = not flags[flagKey]
+    btn.Text = flags[flagKey] and "ON" or "OFF"
+    btn.BackgroundColor3 = flags[flagKey] and Color3.fromRGB(0,150,0) or Color3.fromRGB(50,50,50)
+  end)
+end
+
+createToggle("Auto Orbs", 50, "autoOrbs")
+createToggle("Auto Hoops", 90, "autoHoops")
+createToggle("Auto Race", 130, "autoRace")
+createToggle("Infinite Jump", 170, "infiniteJump")
+createToggle("NoClip (N)", 210, "noClip")
+
+-- Slider JumpPower
+local lblJP = Instance.new("TextLabel", main)
+lblJP.Size = UDim2.new(0.6,0,0,30)
+lblJP.Position = UDim2.new(0,10,0,260)
+lblJP.Text = "Jump Power: 50"
+lblJP.TextColor3 = Color3.new(1,1,1)
+lblJP.BackgroundTransparency = 1
+lblJP.Font = Enum.Font.SourceSans
+lblJP.TextSize = 16
+
+local tbJP = Instance.new("TextBox", main)
+tbJP.Size = UDim2.new(0,60,0,30)
+tbJP.Position = UDim2.new(1,-70,0,260)
+tbJP.Text = "50"
+tbJP.ClearTextOnFocus = false
+tbJP.Font = Enum.Font.SourceSans
+tbJP.TextSize = 16
+tbJP.TextColor3 = Color3.new(1,1,1)
+tbJP.BackgroundColor3 = Color3.fromRGB(50,50,50)
+
+tbJP.FocusLost:Connect(function()
+  local v = tonumber(tbJP.Text)
+  if v and v >= 10 and v <= 200 then
+    lblJP.Text = "Jump Power: "..v
+    tbJP.Text = tostring(v)
+  else
+    tbJP.Text = lblJP.Text:match("%d+")
+  end
+end)
+
+-- Functionality
+
+-- Anti-AFK
+for _,c in pairs(getconnections(LocalPlayer.Idled)) do c:Disable() end
+LocalPlayer.Idled:Connect(function()
+  local vu = game:GetService("VirtualUser")
+  vu:Button2Down(Vector2.new())
+  wait(1)
+  vu:Button2Up(Vector2.new())
+end)
+
+-- Infinite Jump
+UIS.JumpRequest:Connect(function()
+  if flags.infiniteJump then
+    humanoid.JumpPower = tonumber(tbJP.Text) or 50
+    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+  end
+end)
+
+-- NoClip toggle via key N
+UIS.InputBegan:Connect(function(inp)
+  if inp.KeyCode == Enum.KeyCode.N then
+    flags.noClip = not flags.noClip
+  end
+end)
+
+RunService.Stepped:Connect(function()
+  if flags.noClip then
+    for _,p in pairs(Character:GetDescendants()) do
+      if p:IsA("BasePart") then p.CanCollide = false end
+    end
+  end
+end)
+
+-- Auto Orbs
 spawn(function()
-    while true do
-        if autoFarmToggle.Enabled() then
-            autoFarm()
+  while true do
+    if flags.autoOrbs then
+      for _,o in pairs(workspace:GetDescendants()) do
+        if o:IsA("BasePart") and o.Name:lower():find("orb") then
+          pcall(function()
+            Root.CFrame = o.CFrame + Vector3.new(0,2,0)
+          end)
+          wait(0.3)
         end
-        wait(0.1)
+      end
     end
+    wait(0.5)
+  end
 end)
 
+-- Auto Hoops
 spawn(function()
-    while true do
-        if autoRaceToggle.Enabled() then
-            autoRace()
+  while true do
+    if flags.autoHoops then
+      for _,h in pairs(workspace:GetDescendants()) do
+        if h.Name:lower():find("hoop") and h:IsA("TouchTransmitter") then
+          firetouchinterest(Root, h.Parent, 0)
+          wait(0.1)
+          firetouchinterest(Root, h.Parent, 1)
         end
-        wait(0.1)
+      end
     end
+    wait(0.8)
+  end
 end)
 
+-- Auto Race (se existir bandeira ou trigger RaceStart)
+spawn(function()
+  while true do
+    if flags.autoRace then
+      local start = workspace:FindFirstChild("RaceStart") or workspace:FindFirstChild("RaceFlag")
+      if start and start:IsA("BasePart") then
+        Root.CFrame = start.CFrame + Vector3.new(0,3,0)
+      end
+    end
+    wait(2)
+  end
+end)
+
+print("SpeedLegend Hub loaded.")
