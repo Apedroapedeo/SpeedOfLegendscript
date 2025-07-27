@@ -1,149 +1,224 @@
--- Carregar Bracket GUI
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/WetCheezit/Bracket-V2/main/src.lua"))()
+-- Carregar OrionLib
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
 
 -- Criar Janela
-local Window, MainGUI = Library:CreateWindow("Speed Legends Hub")
+local Window = OrionLib:MakeWindow({
+    Name = "Speed Legends Hub",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "SpeedOfLegendConfig"
+})
 
--- Tabs
-local AutoTab = Window:CreateTab("Auto")
-local PlayerTab = Window:CreateTab("Player")
-local MiscTab = Window:CreateTab("Misc")
+-- Variáveis
+local AutoFarmEnabled = false
+local AutoRebirth = false
+local InfiniteJump = false
+local JumpPowerEnabled = false
+local JumpPowerValue = 100
+local LockPosition = false
+local SavedPosition
+local NoclipEnabled = false
+local AutoRace = false
 
--- Auto Farm Variables
-local orbTypes = {
-    { action = "collectOrb", orbType = "Red Orb", place = "City" },
-    { action = "collectOrb", orbType = "Gem", place = "City" }
-}
+-- Funções
+local function StartAutoFarm()
+    local orbEvent = game:GetService("ReplicatedStorage").rEvents.orbEvent
+    local function getOrb(orbType)
+        return "collectOrb", orbType, "City"
+    end
 
-local orbEvent = game:GetService("ReplicatedStorage").rEvents.orbEvent
-local rebirthEvent = game:GetService("ReplicatedStorage").rEvents.rebirthEvent
+    while AutoFarmEnabled do
+        for i = 1, 15 do
+            orbEvent:FireServer(getOrb("Red Orb"))
+        end
+        orbEvent:FireServer(getOrb("Gem"))
+        -- Teleportar hoops
+        for _, hoop in pairs(workspace.Hoops:GetChildren()) do
+            if hoop:IsA("BasePart") then
+                hoop.CFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame
+            end
+        end
+        task.wait(0.5)
+    end
+end
 
--- Função para obter dados do orb
-function getOrb(orbType)
-    for _, v in pairs(orbTypes) do
-        if v.orbType == orbType then
-            return v.action, v.orbType, v.place
+local function StartRebirth()
+    local rebirthEvent = game:GetService("ReplicatedStorage").rEvents.rebirthEvent
+    while AutoRebirth do
+        rebirthEvent:FireServer("rebirthRequest")
+        task.wait(1)
+    end
+end
+
+local function ToggleNoclip()
+    local char = game.Players.LocalPlayer.Character
+    if not char then return end
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") and part.CanCollide ~= not NoclipEnabled then
+            part.CanCollide = not NoclipEnabled
         end
     end
 end
 
--- Auto Farm
-local farming = false
-AutoTab:CreateToggle("Ativar Auto Farm", function(state)
-    farming = state
-    while farming do
-        for _ = 1, 10 do
-            orbEvent:FireServer(getOrb("Red Orb"))
-        end
-        orbEvent:FireServer(getOrb("Gem"))
-        wait()
-    end
-end)
-
--- Auto Rebirth
-local autoRebirth = false
-AutoTab:CreateToggle("Ativar Auto Rebirth", function(state)
-    autoRebirth = state
-    while autoRebirth do
-        rebirthEvent:FireServer("rebirthRequest")
-        wait(2)
-    end
-end)
-
--- Auto Hoop (teleporta os hoops para o jogador)
-local autoHoop = false
-AutoTab:CreateToggle("Auto Coleta de Argolas", function(state)
-    autoHoop = state
-    while autoHoop do
-        for _, v in pairs(game:GetService("Workspace").Hoops:GetChildren()) do
-            v.CFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame
-        end
-        wait(1)
+game:GetService("RunService").Stepped:Connect(function()
+    if NoclipEnabled then
+        ToggleNoclip()
     end
 end)
 
 -- Infinite Jump
-local infJump = false
-PlayerTab:CreateToggle("Infinite Jump", function(state)
-    infJump = state
-end)
 game:GetService("UserInputService").JumpRequest:Connect(function()
-    if infJump then
+    if InfiniteJump then
         game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
     end
 end)
 
--- Jump Power Customizável
-local jumpEnabled = false
-local customJump = 50
-PlayerTab:CreateToggle("Ativar Jump Power", function(state)
-    jumpEnabled = state
-end)
-PlayerTab:CreateSlider("Força do Pulo", 50, 300, 50, function(value)
-    customJump = value
-    if jumpEnabled then
-        game.Players.LocalPlayer.Character.Humanoid.UseJumpPower = true
-        game.Players.LocalPlayer.Character.Humanoid.JumpPower = customJump
+-- Trava de posição
+game:GetService("RunService").RenderStepped:Connect(function()
+    if LockPosition and SavedPosition then
+        local hrp = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.CFrame = SavedPosition
+        end
     end
 end)
 
--- NoClip
-local noclip = false
-MiscTab:CreateToggle("Ativar NoClip", function(state)
-    noclip = state
-end)
-game:GetService("RunService").Stepped:Connect(function()
-    if noclip then
-        for _, v in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do
-            if v:IsA("BasePart") and v.CanCollide then
-                v.CanCollide = false
+-- Auto Race simples
+local function StartAutoRace()
+    while AutoRace do
+        for _, v in pairs(workspace:GetChildren()) do
+            if v.Name:match("Race") and v:IsA("Model") then
+                local prompt = v:FindFirstChildWhichIsA("ProximityPrompt", true)
+                if prompt then
+                    fireproximityprompt(prompt)
+                end
             end
         end
+        task.wait(10)
     end
-end)
+end
 
--- Trava de Posição
-local trava = false
-local pos = nil
-MiscTab:CreateToggle("Travar Posição", function(state)
-    trava = state
-    if state then
-        pos = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
-    end
-end)
-game:GetService("RunService").RenderStepped:Connect(function()
-    if trava and pos then
-        game.Players.LocalPlayer.Character:MoveTo(pos)
-    end
-end)
+-- Aba: Auto
+local AutoTab = Window:MakeTab({
+    Name = "Auto",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
--- Auto Race
-local autoRace = false
-MiscTab:CreateToggle("Auto Entrar em Corrida", function(state)
-    autoRace = state
-    while autoRace do
-        local Event = game:GetService("ReplicatedStorage").rEvents.joinRace
-        Event:FireServer()
-        wait(1)
-    end
-end)
-
--- Anti-AFK
-local vu = game:GetService("VirtualUser")
-game:GetService("Players").LocalPlayer.Idled:Connect(function()
-    vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-    wait(1)
-    vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-end)
-
--- Minimizar GUI
-local isMinimized = false
-local toggleBtn = MainGUI:CreateButton("⏬ Minimizar", function()
-    isMinimized = not isMinimized
-    for _, v in pairs(Window.Tabs) do
-        if v.Frame then
-            v.Frame.Visible = not isMinimized
+AutoTab:AddToggle({
+    Name = "Auto Farm (Orbs + Hoops)",
+    Default = false,
+    Callback = function(v)
+        AutoFarmEnabled = v
+        if v then
+            task.spawn(StartAutoFarm)
         end
     end
-    toggleBtn:SetText(isMinimized and "⏫ Abrir" or "⏬ Minimizar")
-end)
+})
+
+AutoTab:AddToggle({
+    Name = "Auto Rebirth",
+    Default = false,
+    Callback = function(v)
+        AutoRebirth = v
+        if v then
+            task.spawn(StartRebirth)
+        end
+    end
+})
+
+AutoTab:AddToggle({
+    Name = "Auto Race",
+    Default = false,
+    Callback = function(v)
+        AutoRace = v
+        if v then
+            task.spawn(StartAutoRace)
+        end
+    end
+})
+
+-- Aba: Player
+local PlayerTab = Window:MakeTab({
+    Name = "Player",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+PlayerTab:AddToggle({
+    Name = "Infinite Jump",
+    Default = false,
+    Callback = function(v)
+        InfiniteJump = v
+    end
+})
+
+PlayerTab:AddSlider({
+    Name = "Jump Power",
+    Min = 50,
+    Max = 200,
+    Default = 100,
+    Increment = 1,
+    ValueName = "Power",
+    Callback = function(v)
+        JumpPowerValue = v
+        game.Players.LocalPlayer.Character.Humanoid.JumpPower = v
+    end
+})
+
+PlayerTab:AddToggle({
+    Name = "Ativar Jump Power",
+    Default = false,
+    Callback = function(v)
+        JumpPowerEnabled = v
+        if v then
+            game.Players.LocalPlayer.Character.Humanoid.JumpPower = JumpPowerValue
+        else
+            game.Players.LocalPlayer.Character.Humanoid.JumpPower = 50
+        end
+    end
+})
+
+PlayerTab:AddButton({
+    Name = "Salvar Posição",
+    Callback = function()
+        SavedPosition = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame
+    end
+})
+
+PlayerTab:AddToggle({
+    Name = "Travar na Posição",
+    Default = false,
+    Callback = function(v)
+        LockPosition = v
+    end
+})
+
+-- Aba: Misc
+local MiscTab = Window:MakeTab({
+    Name = "Misc",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+MiscTab:AddToggle({
+    Name = "Noclip",
+    Default = false,
+    Callback = function(v)
+        NoclipEnabled = v
+    end
+})
+
+MiscTab:AddButton({
+    Name = "Anti-AFK",
+    Callback = function()
+        local vu = game:GetService("VirtualUser")
+        game:GetService("Players").LocalPlayer.Idled:Connect(function()
+            vu:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+            task.wait(1)
+            vu:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+        end)
+    end
+})
+
+OrionLib:Init()
